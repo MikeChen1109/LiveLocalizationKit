@@ -1,78 +1,68 @@
-# DebugLocalizationPreviewTool
+# Debug Localization Preview Tool
 
-`DebugLocalizationPreviewTool` is a lightweight iOS debug tool for previewing how localized UI may look before a full production localization workflow is ready.
+Preview localized UI faster during development.
 
-## What Problem It Solves
+`Debug Localization Preview Tool` is a lightweight iOS debug tool for indie developers and small teams who want to check multi-language UI earlier, before a full localization pipeline is in place.
 
-This project is designed to help indie developers and small teams support multi-language UI faster.
+## Problem
 
-In many side projects, localization is delayed because:
+Localization usually gets delayed until late in development. By then, teams often discover:
 
-- production translation pipelines are expensive or incomplete
-- it is hard to quickly preview how strings expand in different languages
-- layout issues are often discovered too late
+- translated text is longer than expected
+- layouts break in some languages
+- some screens still rely on hard-coded strings
 
-This tool focuses on one practical goal:
+This tool is built to help you preview those issues earlier.
 
-- quickly preview whether different languages can still fit and display correctly in the intended UI design
+## What This Tool Does
 
-## Current Positioning
+- pseudo-localizes text to simulate translated UI
+- expands strings so layout issues are easier to spot
+- lets you swap localization providers in debug builds
+- supports Apple Translation-based flows where available
 
-This project is currently aimed at **debugging and UI preview workflows**, not production-ready localization infrastructure.
+## Important Note
 
-Important note:
+This project is currently intended for **debugging and UI preview workflows**.
 
-- it is **not currently recommended to use this directly in production**
-- use it to validate layout, length expansion, and localization integration points during development
-- production apps should still use a proper localization strategy, translation review process, and content management flow
+It is **not recommended as a direct production localization solution** yet.
 
-## What It Can Do
+Use it to:
 
-- pseudo-localize strings to simulate translated UI
-- preview text expansion and accented characters
-- swap between different localization providers during development
-- integrate with Apple's Translation framework where supported
-- help surface missing localization handling in app screens earlier
+- validate UI layout under localization stress
+- preview translation impact before real content is ready
+- test localization integration in development
 
-## Package Products
+Do not treat it as a replacement for:
 
-This repository exposes two Swift Package products:
+- string catalogs or `Localizable.strings`
+- translator review
+- localization QA
+- a production translation workflow
 
-- `DebugLocalizationCore`
-- `DebugLocalizationTranslationSupport`
+## Swift Package Manager
 
-## Install with Swift Package Manager
-
-Add this repository in Xcode using:
+Add this repository in Xcode:
 
 ```text
 https://github.com/MikeChen1109/DebugLocalizationPreviewTool.git
 ```
 
-Then import the module you need:
+Available products:
 
-```swift
-import DebugLocalizationCore
-```
+- `DebugLocalizationCore`
+- `DebugLocalizationTranslationSupport`
 
-or
-
-```swift
-import DebugLocalizationTranslationSupport
-```
-
-## Basic Usage
-
-Create a `DebugLocalizer` with one of the built-in providers:
+## Quick Start
 
 ```swift
 import DebugLocalizationCore
 
 let localizer = DebugLocalizer(provider: PseudoLocalizationProvider())
-let text = await localizer.localize("Settings")
+let localized = await localizer.localize("Settings")
 ```
 
-You can also create a configuration and generate a localizer from it:
+You can also use a configuration:
 
 ```swift
 import DebugLocalizationCore
@@ -89,74 +79,47 @@ let localizer = configuration.makeLocalizer()
 
 ### `PseudoLocalizationProvider`
 
-Use this when you want to test UI layout quickly without real translation.
+Best for early UI preview.
 
 It:
 
 - replaces some characters with accented versions
-- expands string length to simulate real localized text
-- wraps output with a language marker for easier visual inspection
-
-This is the most useful provider for early UI validation.
+- pads text length to mimic longer translations
+- adds a visible language marker around the output
 
 ### `MockTranslationProvider`
 
-Use this when you want to simulate asynchronous translation behavior without relying on real services.
+Useful when you want to simulate async translation behavior.
 
 ### `PassthroughLocalizationProvider`
 
-Use this when you want debug localization wiring enabled, but still return the original string.
+Returns the original text unchanged.
 
 ### `AppleTranslationProvider`
 
-Use this when testing translation flows on supported Apple platforms.
+Used for Apple Translation-based flows on supported platforms.
 
-Notes:
+## Open Source
 
-- this depends on Apple platform availability
-- it should be treated as a debug/development aid for now
+This project is open source and intended for experimentation, learning, and internal debug workflows.
 
-## Recommended Use Cases
+You can:
 
-- checking whether long strings break your layout
-- previewing localization impact before real translations are ready
-- spotting screens that still contain hard-coded or unhandled strings
-- validating debug builds with multiple provider modes
-
-## Not Yet a Full Production Localization Solution
-
-This repository does **not** replace:
-
-- `Localizable.strings` or string catalogs
-- translator review
-- terminology consistency checks
-- production content workflows
-- localization QA across all markets
-
-If your app is shipping broadly, you should treat this tool as a companion to your localization process, not the final process itself.
-
-## Open Source Usage
-
-This project is open source and intended for learning, experimentation, and integration into internal debug workflows.
-
-If you use it:
-
-- feel free to fork and adapt it to your own app workflow
-- open issues or pull requests if you find bugs or have ideas
-- please evaluate platform compatibility and product risk before using any part of it in a shipped app
+- use it in your own projects
+- fork and customize it
+- open issues or pull requests
 
 ## Repository Layout
 
-- `Package.swift`: root Swift Package manifest for SPM consumers
-- `frameworks/DebugLocalizationPackage/`: package source code and tests
-- `DebugLocalizationDemo/`: local demo app for development and experiments
+- `Package.swift`: root manifest for Swift Package Manager
+- `frameworks/DebugLocalizationPackage/`: package sources and tests
+- `DebugLocalizationDemo/`: demo app for local development
 
-## Future Direction
+## Possible Next Steps
 
-Areas worth expanding next:
+Potential areas to improve:
 
-- easier SwiftUI integration APIs
-- sample integration with string catalogs
-- better demo coverage for common UI edge cases
-- clearer preparation flow for Apple Translation support
-- more test coverage around language handling and fallback behavior
+- easier SwiftUI integration
+- better demo scenarios for layout edge cases
+- more tests for fallback behavior
+- clearer setup around Apple Translation preparation flow
