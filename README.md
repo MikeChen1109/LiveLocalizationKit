@@ -146,24 +146,6 @@ Useful when you want to simulate async translation behavior.
 
 Returns the original text unchanged.
 
-## How To Think About The Two Products
-
-### `DebugLocalizationCore`
-
-This contains the shared debug localization foundation:
-
-- `DebugLocalizer`
-- provider abstraction
-- pseudo-localization
-- mock and passthrough providers
-- configuration support
-
-### `DebugLocalizationTranslationSupport`
-
-This adds Apple Translation-based preview support on top of the core workflow.
-
-The split keeps the core debug flow reusable, while translation-specific support stays separate.
-
 ## License
 
 MIT
