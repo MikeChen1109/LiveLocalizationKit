@@ -1,33 +1,37 @@
 # Debug Localization Preview Tool
 
-Debug Localization Preview Tool is a lightweight Swift Package for debug-time localization workflows. It is designed for developers who want to preview localized UI quickly, swap debug translation providers, and stress test layouts before production localization is in place.
+Debug Localization Preview Tool is a Swift Package that wraps Apple Translation into a simpler integration flow for new iOS apps. It is designed for developers who want a more direct way to translate individual strings, reduce repetitive `translationTask` setup, and speed up localized UI preview during development.
 
 ## What This Tool Does
 
-- uses Apple Translation for quicker translation preview in supported environments
-- supports provider-swappable debug localization flows
-- provides async and sync access for debug-time localization
-- provides pseudo, mock, and passthrough providers for different scenarios
-- helps catch layout problems caused by translated or expanded text
+- wraps Apple Translation behind a simpler provider-based API
+- reduces the need to repeatedly wire `translationTask` or manage translation sessions manually
+- lets you translate individual strings through a shared localizer flow
+- helps you preview localized UI faster and catch layout issues earlier
+- includes preparation helpers for language pack download and readiness checks
+- keeps the provider model open so other translation backends can be added later
 
 ## Important Note
 
-This project is currently intended for **debugging and UI preview workflows**.
+This package is currently centered on **making Apple Translation easier to integrate** in modern iOS apps while also improving development-time localization preview workflows.
 
-It is **not recommended as a direct production localization solution** yet.
+Its main value is not replacing Apple's framework, but providing a cleaner way to adopt it.
 
 Use it to:
 
-- preview multi-language UI faster
-- validate layout under translated content
-- test localization-related behavior in development
+- integrate Apple Translate with less repeated setup code
+- translate individual UI strings more directly in your app flow
+- preview multi-language UI faster during development
+- validate layout behavior under translated content
+- prototype or ship app features built around Apple's on-device translation
+- keep room for custom providers in future versions if you want to plug in your own translation API
 
 Do not treat it as a replacement for:
 
 - string catalogs or `Localizable.strings`
 - translator review
 - localization QA
-- a production translation workflow
+- a full localization management workflow
 
 ## Swift Package Manager
 
@@ -116,14 +120,14 @@ import DebugLocalizationTranslationSupport
 
 ### Apple Translation Support
 
-`AppleTranslationProvider` is intended to help you generate preview text faster with Apple's Translation framework on supported platforms.
+`AppleTranslationProvider` is intended to give developers a more convenient integration layer on top of Apple's Translation framework.
 
 Notes:
 
-- minimum supported version is `iOS 18`
+- minimum supported version is `iOS 26`
 - this depends on Apple platform availability
 - supported languages depend on the system
-- this is best treated as a debug preview aid, not a complete production translation pipeline
+- this package focuses on simplifying Apple Translate integration rather than replacing a full localization pipeline
 
 ### Language Packs
 
@@ -204,7 +208,7 @@ The demo app uses `TranslationPreparationGate` at the root and shows both SwiftU
 
 ### `AppleTranslationProvider`
 
-Use it when you want preview output closer to real translated content and want to reduce manual translation work during development.
+Use it when you want a simpler way to integrate Apple Translate and translate strings without repeatedly wiring Apple Translation APIs yourself.
 
 Pair it with `TranslationPreparationGate` for the quickest setup, or use `TranslationPreparationCoordinator` when you need a custom preparation UI.
 
