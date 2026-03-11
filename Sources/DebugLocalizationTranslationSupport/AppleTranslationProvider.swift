@@ -19,7 +19,7 @@ public struct AppleTranslationProvider: LocalizationProvider, @unchecked Sendabl
         self.appLanguageIdentifier = currentAppLanguageIdentifier
         self.englishLanguageIdentifierChecker = isEnglishLanguageIdentifier
         self.preparationResolver = Self.preparation
-        self.translationExecutor = Self.translateUsingInstalledSession
+        self.translationExecutor = Self.defaultTranslationExecutor()
     }
 
     init(
@@ -32,6 +32,17 @@ public struct AppleTranslationProvider: LocalizationProvider, @unchecked Sendabl
         self.englishLanguageIdentifierChecker = englishLanguageIdentifierChecker
         self.preparationResolver = preparationResolver
         self.translationExecutor = translationExecutor
+    }
+
+    private static func defaultTranslationExecutor() -> TranslationExecutor {
+#if canImport(Translation)
+        if #available(iOS 26.0, macOS 26.0, *) {
+            return Self.translateUsingInstalledSession
+        }
+#endif
+        return { _, _ in
+            throw DebugLocalizationError.notSupportedOnPlatform
+        }
     }
 
     public func translate(_ text: String) async -> String {
@@ -122,21 +133,17 @@ public struct AppleTranslationProvider: LocalizationProvider, @unchecked Sendabl
         return candidateCode != nil && candidateCode == languageCode
     }
 
-    @available(iOS 18.0, *)
+    @available(iOS 26.0, macOS 26.0, *)
     private static func translateUsingInstalledSession(_ text: String, preparation: Preparation) async throws -> String {
-        if #available(iOS 26.0, *) {
-            let session = TranslationSession(
-                installedSource: preparation.sourceLanguage,
-                target: preparation.targetLanguage
-            )
-            do {
-                let response = try await session.translate(text)
-                return response.targetText
-            } catch {
-                throw DebugLocalizationError.translationFailed(underlying: error)
-            }
-        } else {
-            throw DebugLocalizationError.notSupportedOnPlatform
+        let session = TranslationSession(
+            installedSource: preparation.sourceLanguage,
+            target: preparation.targetLanguage
+        )
+        do {
+            let response = try await session.translate(text)
+            return response.targetText
+        } catch {
+            throw DebugLocalizationError.translationFailed(underlying: error)
         }
     }
 #endif

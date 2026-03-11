@@ -1,11 +1,12 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 
 import PackageDescription
 
 let package = Package(
     name: "DebugLocalization",
     platforms: [
-        .iOS(.v18)
+        .iOS(.v26),
+        .macOS(.v15)
     ],
     products: [
         .library(
