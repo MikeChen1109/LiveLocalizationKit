@@ -1,14 +1,14 @@
 # Debug Localization Preview Tool
 
-This is a lightweight iOS debug tool for indie developers and small teams who want to preview localized UI faster, reduce manual translation setup during development, and validate how their app behaves across languages before a full production localization workflow is ready.
+Debug Localization Preview Tool is a lightweight Swift Package for debug-time localization workflows. It is designed for developers who want to preview localized UI quickly, swap debug translation providers, and stress test layouts before production localization is in place.
 
 ## What This Tool Does
 
 - uses Apple Translation for quicker translation preview in supported environments
-- helps preview localization impact earlier in development
-- reduces manual setup when testing multi-language UI
-- provides pseudo, mock, and passthrough providers for different debug scenarios
-- makes it easier to catch layout problems caused by translated text
+- supports provider-swappable debug localization flows
+- provides async and sync access for debug-time localization
+- provides pseudo, mock, and passthrough providers for different scenarios
+- helps catch layout problems caused by translated or expanded text
 
 ## Important Note
 
@@ -44,37 +44,49 @@ Available products:
 
 ## Quick Start
 
+Configure a shared provider once at app startup:
+
+```swift
+import DebugLocalizationCore
+
+DebugTranslate.configure(provider: PseudoLocalizationProvider())
+```
+
+Then localize directly from `String`:
+
+```swift
+import DebugLocalizationCore
+
+let localized = await "Settings".localize()
+```
+
+If you want to bypass the shared instance, inject your own localizer:
+
+```swift
+import DebugLocalizationCore
+
+let localizer = DebugLocalizer(provider: PseudoLocalizationProvider())
+let localized = await "Settings".localize(using: localizer)
+```
+
+For providers that do not require async work:
+
+```swift
+import DebugLocalizationCore
+
+DebugTranslate.configure(provider: MockTranslationProvider())
+
+let localized = "Settings".localizeSync()
+```
+
 For Apple Translation-based preview:
 
 ```swift
 import DebugLocalizationCore
 import DebugLocalizationTranslationSupport
 
-let provider = AppleTranslationProvider()
-let localizer = DebugLocalizer(provider: provider)
-let localized = await localizer.localize("Settings")
-```
-
-For pseudo-localization preview:
-
-```swift
-import DebugLocalizationCore
-
-let localizer = DebugLocalizer(provider: PseudoLocalizationProvider())
-let localized = await localizer.localize("Settings")
-```
-
-You can also use a configuration:
-
-```swift
-import DebugLocalizationCore
-
-let configuration = DebugLocalizationConfiguration(
-    providerMode: .pseudoLocalization,
-    shouldPresentPreparationGate: false
-)
-
-let localizer = configuration.makeLocalizer()
+DebugTranslate.configure(provider: AppleTranslationProvider())
+let localized = await "Settings".localize()
 ```
 
 ## Usage Notes
@@ -116,6 +128,18 @@ If that happens, a practical workaround is:
 
 In practice, managing language packs through the `Translate` app can be more reliable than waiting for the download flow to recover inside your own testing flow.
 
+### Shared Configuration
+
+Use `DebugTranslate.configure(provider:)` during app startup to define the default provider used by `String.localize()`.
+
+If needed, you can still create a custom `DebugLocalizer(provider:)` and pass it explicitly to `String.localize(using:)`.
+
+### Sync API
+
+`localizeSync()` is intentionally limited to providers conforming to `SyncLocalizationProvider`.
+
+If the configured provider is async-only, `localizeSync()` returns `nil` instead of blocking.
+
 ### Example App
 
 If you want to see how this package is used in practice, check the demo app in:
@@ -126,7 +150,7 @@ If you want to see how this package is used in practice, check the demo app in:
 
 ### `AppleTranslationProvider`
 
-The main provider for this project. Use it when you want preview output closer to real translated content and want to reduce manual translation work during development.
+Use it when you want preview output closer to real translated content and want to reduce manual translation work during development.
 
 ### `PseudoLocalizationProvider`
 
@@ -140,7 +164,7 @@ It:
 
 ### `MockTranslationProvider`
 
-Useful when you want to simulate async translation behavior.
+Useful when you want deterministic debug output without depending on external translation behavior.
 
 ### `PassthroughLocalizationProvider`
 

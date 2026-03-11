@@ -4,10 +4,25 @@ import DebugLocalizationCore
 import Translation
 #endif
 
-public struct AppleTranslationProvider: DebugLocalizationProvider {
+public struct AppleTranslationProvider: LocalizationProvider {
     public init() {}
 
-    public func localize(_ text: String, into languageIdentifier: String) async throws -> String {
+    public func translate(_ text: String) async -> String {
+        let languageIdentifier = currentAppLanguageIdentifier()
+
+        guard !isEnglishLanguageIdentifier(languageIdentifier) else {
+            return text
+        }
+
+        do {
+            return try await translate(text, into: languageIdentifier)
+        } catch {
+            print("Debug localization fallback. Error: \(error)")
+            return text
+        }
+    }
+
+    public func translate(_ text: String, into languageIdentifier: String) async throws -> String {
 #if canImport(Translation)
         if #available(iOS 18.0, *) {
             guard let preparation = await Self.preparation(for: languageIdentifier) else {

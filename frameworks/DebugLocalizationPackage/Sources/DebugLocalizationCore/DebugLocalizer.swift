@@ -1,33 +1,59 @@
 import Foundation
 
-public actor DebugLocalizer {
-    private let provider: any DebugLocalizationProvider
+public final class DebugLocalizer: @unchecked Sendable {
+    public static var shared: DebugLocalizer {
+        DebugTranslate.localizer
+    }
+
+    private let provider: any LocalizationProvider
+    private let lock = NSLock()
     private var cache: [String: String] = [:]
 
-    public init(provider: any DebugLocalizationProvider) {
+    public init(provider: any LocalizationProvider) {
         self.provider = provider
     }
 
     public func localize(_ text: String) async -> String {
-        let targetLanguage = currentAppLanguageIdentifier()
-
-        guard !isEnglishLanguageIdentifier(targetLanguage) else {
-            return text
-        }
-
-        let cacheKey = "\(text)|\(targetLanguage)"
-        if let cached = cache[cacheKey] {
+        let cacheKey = "\(currentAppLanguageIdentifier())|\(text)"
+        if let cached = cachedValue(for: cacheKey) {
             return cached
         }
 
-        do {
-            let localized = try await provider.localize(text, into: targetLanguage)
-            cache[cacheKey] = localized
+        if let syncProvider = provider as? any SyncLocalizationProvider {
+            let localized = syncProvider.translateSync(text)
+            store(localized, for: cacheKey)
             return localized
-        } catch {
-            print("Debug localization fallback. Error: \(error)")
-            cache[cacheKey] = text
-            return text
         }
+
+        let localized = await provider.translate(text)
+        store(localized, for: cacheKey)
+        return localized
+    }
+
+    public func localizeSync(_ text: String) -> String? {
+        guard let syncProvider = provider as? any SyncLocalizationProvider else {
+            return nil
+        }
+
+        let cacheKey = "\(currentAppLanguageIdentifier())|\(text)"
+        if let cached = cachedValue(for: cacheKey) {
+            return cached
+        }
+
+        let localized = syncProvider.translateSync(text)
+        store(localized, for: cacheKey)
+        return localized
+    }
+
+    private func cachedValue(for key: String) -> String? {
+        lock.lock()
+        defer { lock.unlock() }
+        return cache[key]
+    }
+
+    private func store(_ value: String, for key: String) {
+        lock.lock()
+        cache[key] = value
+        lock.unlock()
     }
 }

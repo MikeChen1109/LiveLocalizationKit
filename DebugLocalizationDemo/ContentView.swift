@@ -1,15 +1,12 @@
 import SwiftUI
 import DebugLocalizationCore
-import DebugLocalizationTranslationSupport
 
 struct ContentView: View {
     private let englishSourceText = "Payment successful"
-    private let localizer: DebugLocalizer
 
     @State private var displayedText: String
 
-    init(localizer: DebugLocalizer) {
-        self.localizer = localizer
+    init() {
         _displayedText = State(initialValue: englishSourceText)
     }
 
@@ -24,11 +21,11 @@ struct ContentView: View {
         }
         .padding()
         .task {
-            displayedText = await localizer.localize(englishSourceText)
+            displayedText = await englishSourceText.localize()
         }
     }
 }
 
 #Preview {
-    ContentView(localizer: DebugLocalizer(provider: MockTranslationProvider()))
+    ContentView()
 }

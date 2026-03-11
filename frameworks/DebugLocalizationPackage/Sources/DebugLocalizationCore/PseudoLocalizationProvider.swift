@@ -1,9 +1,10 @@
 import Foundation
 
-public struct PseudoLocalizationProvider: DebugLocalizationProvider {
+public struct PseudoLocalizationProvider: SyncLocalizationProvider {
     public init() {}
 
-    public func localize(_ text: String, into languageIdentifier: String) async throws -> String {
+    public func translateSync(_ text: String) -> String {
+        let languageIdentifier = currentAppLanguageIdentifier()
         let locale = Locale(identifier: languageIdentifier)
         let languageCode = locale.language.languageCode?.identifier ?? languageIdentifier
         let accented = accent(text)
@@ -36,21 +37,21 @@ public struct PseudoLocalizationProvider: DebugLocalizationProvider {
     }
 }
 
-public struct PassthroughLocalizationProvider: DebugLocalizationProvider {
+public struct PassthroughLocalizationProvider: SyncLocalizationProvider {
     public init() {}
 
-    public func localize(_ text: String, into languageIdentifier: String) async throws -> String {
+    public func translateSync(_ text: String) -> String {
         text
     }
 }
 
-public struct MockTranslationProvider: DebugLocalizationProvider {
+public struct MockTranslationProvider: SyncLocalizationProvider {
     public init() {}
 
-    public func localize(_ text: String, into languageIdentifier: String) async throws -> String {
+    public func translateSync(_ text: String) -> String {
+        let languageIdentifier = currentAppLanguageIdentifier()
         let locale = Locale(identifier: languageIdentifier)
         let languageCode = locale.language.languageCode?.identifier ?? languageIdentifier
-        try await Task.sleep(nanoseconds: 250_000_000)
         return "[\(languageCode.uppercased())] \(text)"
     }
 }

@@ -5,21 +5,24 @@ import DebugLocalizationTranslationSupport
 @main
 struct DebugLocalizationDemoApp: App {
     private let configuration: DebugLocalizationConfiguration
-    private let localizer: DebugLocalizer
 
     init() {
         configuration = .debugDefault
         switch configuration.providerMode {
         case .appleTranslation:
-            localizer = configuration.makeLocalizer(provider: AppleTranslationProvider())
-        default:
-            localizer = configuration.makeLocalizer()
+            DebugTranslate.configure(provider: AppleTranslationProvider())
+        case .pseudoLocalization:
+            DebugTranslate.configure(provider: PseudoLocalizationProvider())
+        case .passthrough:
+            DebugTranslate.configure(provider: PassthroughLocalizationProvider())
+        case .mock:
+            DebugTranslate.configure(provider: MockTranslationProvider())
         }
     }
 
     var body: some Scene {
         WindowGroup {
-            RootDemoView(localizer: localizer, configuration: configuration)
+            RootDemoView(configuration: configuration)
         }
     }
 }

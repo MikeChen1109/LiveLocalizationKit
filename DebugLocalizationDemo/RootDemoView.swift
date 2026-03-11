@@ -6,7 +6,6 @@ import Translation
 #endif
 
 struct RootDemoView: View {
-    let localizer: DebugLocalizer
     let configuration: DebugLocalizationConfiguration
 
     @Environment(\.scenePhase) private var scenePhase
@@ -27,12 +26,12 @@ struct RootDemoView: View {
 
     private var tabContent: some View {
         TabView {
-            ContentView(localizer: localizer)
+            ContentView()
                 .tabItem {
                     Label("SwiftUI", systemImage: "swift")
                 }
 
-            UIKitDemoView(localizer: localizer)
+            UIKitDemoView()
                 .tabItem {
                     Label("UIKit", systemImage: "square.stack.3d.up")
                 }

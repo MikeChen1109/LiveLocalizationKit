@@ -3,7 +3,6 @@ import DebugLocalizationCore
 
 final class UIKitDemoViewController: UIViewController {
     private let englishSourceText = "Delete"
-    private let localizer: DebugLocalizer
 
     private let label: UILabel = {
         let label = UILabel()
@@ -14,15 +13,14 @@ final class UIKitDemoViewController: UIViewController {
         return label
     }()
 
-    init(localizer: DebugLocalizer) {
-        self.localizer = localizer
-        super.init(nibName: nil, bundle: nil)
-        self.title = "UIKit Demo"
-    }
-
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    init() {
+        super.init(nibName: nil, bundle: nil)
+        self.title = "UIKit Demo"
     }
 
     override func viewDidLoad() {
@@ -39,7 +37,7 @@ final class UIKitDemoViewController: UIViewController {
         label.text = englishSourceText
         Task { [weak self] in
             guard let self else { return }
-            let localized = await localizer.localize(englishSourceText)
+            let localized = await englishSourceText.localize()
             await MainActor.run {
                 self.label.text = localized
             }

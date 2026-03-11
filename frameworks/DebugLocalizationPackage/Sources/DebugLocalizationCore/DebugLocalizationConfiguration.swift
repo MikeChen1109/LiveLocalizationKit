@@ -16,23 +16,6 @@ public struct DebugLocalizationConfiguration: Sendable {
         self.shouldPresentPreparationGate = shouldPresentPreparationGate
     }
 
-    public func makeCoreProvider() -> any DebugLocalizationProvider {
-        switch providerMode {
-        case .pseudoLocalization:
-            PseudoLocalizationProvider()
-        case .passthrough:
-            PassthroughLocalizationProvider()
-        case .mock:
-            MockTranslationProvider()
-        case .appleTranslation:
-            PassthroughLocalizationProvider()
-        }
-    }
-
-    public func makeLocalizer(provider overrideProvider: (any DebugLocalizationProvider)? = nil) -> DebugLocalizer {
-        DebugLocalizer(provider: overrideProvider ?? makeCoreProvider())
-    }
-
     public static var debugDefault: DebugLocalizationConfiguration {
 #if DEBUG
         DebugLocalizationConfiguration(
