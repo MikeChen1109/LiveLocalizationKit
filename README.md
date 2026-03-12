@@ -173,7 +173,8 @@ If you need custom presentation logic, use `TranslationPreparationCoordinator` d
 
 Notes:
 
-- `AppleTranslationProvider` requires `iOS 26`
+- package products support `iOS 18` and `macOS 15`
+- `AppleTranslationProvider` requires `iOS 26` or `macOS 26`
 - available languages depend on the system
 - language packs may need to be downloaded on device first
 

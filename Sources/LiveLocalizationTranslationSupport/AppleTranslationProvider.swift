@@ -16,6 +16,7 @@ public struct AppleTranslationProvider: LocalizationProvider, Sendable {
     private let preparationResolver: PreparationResolver
     private let translationExecutor: TranslationExecutor
 
+    @available(iOS 26.0, macOS 26.0, *)
     public init() {
         self.appLanguageIdentifier = currentAppLanguageIdentifier
         self.englishLanguageIdentifierChecker = isEnglishLanguageIdentifier
