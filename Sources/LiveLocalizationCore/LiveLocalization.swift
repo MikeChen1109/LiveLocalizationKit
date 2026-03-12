@@ -3,8 +3,17 @@ import Foundation
 public enum LiveLocalization {
     private static let sharedStore = SharedLocalizerStore()
 
-    public static func configure(provider: any LocalizationProvider) async {
-        await sharedStore.setLocalizer(LiveLocalizer(provider: provider))
+    public static func configure(
+        provider: any LocalizationProvider,
+        cacheStore: any LocalizationCacheStore = MemoryLocalizationCacheStore(),
+        cachePolicy: LocalizationCachePolicy = LocalizationCachePolicy()
+    ) async {
+        let localizer = LiveLocalizer(
+            provider: provider,
+            cacheStore: cacheStore,
+            cachePolicy: cachePolicy
+        )
+        await sharedStore.setLocalizer(localizer)
     }
 
     public static func configure(localizer: LiveLocalizer) async {

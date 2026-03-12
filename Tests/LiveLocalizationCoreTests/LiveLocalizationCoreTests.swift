@@ -23,10 +23,18 @@ struct LiveLocalizationCoreTests {
             }
         }
 
-        await LiveLocalization.configure(provider: PassthroughLocalizationProvider())
+        await LiveLocalization.configure(
+            provider: PassthroughLocalizationProvider(),
+            cacheStore: MemoryLocalizationCacheStore(),
+            cachePolicy: LocalizationCachePolicy(namespace: "passthrough")
+        )
         let passthrough = await "Settings".localize()
 
-        await LiveLocalization.configure(provider: PseudoLocalizationProvider())
+        await LiveLocalization.configure(
+            provider: PseudoLocalizationProvider(),
+            cacheStore: MemoryLocalizationCacheStore(),
+            cachePolicy: LocalizationCachePolicy(namespace: "pseudo")
+        )
         let pseudoLocalized = await "Settings".localize()
 
         #expect(passthrough == "Settings")
@@ -41,11 +49,44 @@ struct LiveLocalizationCoreTests {
             }
         }
 
-        await LiveLocalization.configure(provider: MockLocalizationProvider())
+        await LiveLocalization.configure(
+            provider: MockLocalizationProvider(),
+            cacheStore: MemoryLocalizationCacheStore(),
+            cachePolicy: LocalizationCachePolicy(providerIdentifier: "mock")
+        )
 
         let localized = await "Settings".localize()
 
         #expect(localized.contains("Settings"))
+    }
+
+    @Test
+    func sharedConfigureAcceptsCacheStoreAndPolicy() async {
+        defer {
+            Task {
+                await LiveLocalization.reset()
+            }
+        }
+
+        await LiveLocalization.configure(
+            provider: MockLocalizationProvider(),
+            cacheStore: MemoryLocalizationCacheStore(),
+            cachePolicy: LocalizationCachePolicy(
+                namespace: "shared",
+                providerIdentifier: "mock"
+            )
+        )
+
+        let first = await "Settings".localize(
+            targetLanguageIdentifier: "ja",
+            context: "settings.title"
+        )
+        let second = await "Settings".localize(
+            targetLanguageIdentifier: "ja",
+            context: "settings.title"
+        )
+
+        #expect(first == second)
     }
 
     @Test

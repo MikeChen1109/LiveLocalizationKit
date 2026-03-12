@@ -22,7 +22,14 @@ struct LiveLocalizationKitApp: App {
             }
             .task {
                 guard !isConfigured else { return }
-                await LiveLocalization.configure(provider: AppleTranslationProvider())
+                await LiveLocalization.configure(
+                    provider: AppleTranslationProvider(),
+                    cacheStore: DiskLocalizationCacheStore(),
+                    cachePolicy: LocalizationCachePolicy(
+                        namespace: "demo",
+                        providerIdentifier: "apple-translation"
+                    )
+                )
                 isConfigured = true
             }
         }

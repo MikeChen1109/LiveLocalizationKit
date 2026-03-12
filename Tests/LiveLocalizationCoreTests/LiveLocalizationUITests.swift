@@ -27,7 +27,11 @@ struct LiveLocalizationUITests {
             }
         }
 
-        await LiveLocalization.configure(provider: MockLocalizationProvider())
+        await LiveLocalization.configure(
+            provider: MockLocalizationProvider(),
+            cacheStore: MemoryLocalizationCacheStore(),
+            cachePolicy: LocalizationCachePolicy(providerIdentifier: "mock")
+        )
 
         let localizer = await LiveLocalization.localizer
         let localized = await localizer.localize("Settings")

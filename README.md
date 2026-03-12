@@ -33,7 +33,14 @@ Configure Apple Translation-based preview:
 import LiveLocalizationCore
 import LiveLocalizationTranslationSupport
 
-await LiveLocalization.configure(provider: AppleTranslationProvider())
+await LiveLocalization.configure(
+    provider: AppleTranslationProvider(),
+    cacheStore: DiskLocalizationCacheStore(),
+    cachePolicy: LocalizationCachePolicy(
+        namespace: "preview",
+        providerIdentifier: "apple-translation"
+    )
+)
 let localized = await "Settings".localize()
 ```
 
@@ -58,7 +65,11 @@ struct MyTranslationProvider: LocalizationProvider {
 Use the shared package flow:
 
 ```swift
-await LiveLocalization.configure(provider: MyTranslationProvider())
+await LiveLocalization.configure(
+    provider: MyTranslationProvider(),
+    cacheStore: MemoryLocalizationCacheStore(),
+    cachePolicy: LocalizationCachePolicy(providerIdentifier: "my-provider")
+)
 let text = await "Settings".localize()
 ```
 

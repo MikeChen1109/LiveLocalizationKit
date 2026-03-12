@@ -20,7 +20,14 @@ struct MyTranslationProvider: LocalizationProvider {
 Use it with the shared flow:
 
 ```swift
-await LiveLocalization.configure(provider: MyTranslationProvider())
+await LiveLocalization.configure(
+    provider: MyTranslationProvider(),
+    cacheStore: DiskLocalizationCacheStore(),
+    cachePolicy: LocalizationCachePolicy(
+        namespace: "preview",
+        providerIdentifier: "my-provider"
+    )
+)
 let localized = await "Settings".localize()
 ```
 
