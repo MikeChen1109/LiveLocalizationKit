@@ -31,7 +31,7 @@ struct ContentView: View {
 
                 LiveLocalizedText(
                     wrapperSourceText,
-                    animationStyle: .fade
+                    animationStyle: .softFade
                 )
                 .font(.title2)
                 .multilineTextAlignment(.center)

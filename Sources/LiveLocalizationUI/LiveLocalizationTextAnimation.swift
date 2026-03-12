@@ -7,4 +7,7 @@ public enum LiveLocalizationTextAnimation: Sendable {
 
     /// Cross-fades from the current text to the localized text.
     case fade
+
+    /// Softly replaces text with a brief fade, scale, and blur transition.
+    case softFade
 }

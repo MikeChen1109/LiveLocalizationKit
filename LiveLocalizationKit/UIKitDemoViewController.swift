@@ -40,7 +40,7 @@ final class UIKitDemoViewController: UIViewController {
         label.numberOfLines = 0
         label.textAlignment = .center
         label.font = .preferredFont(forTextStyle: .title2)
-        label.animationStyle = .fade
+        label.animationStyle = .softFade
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()

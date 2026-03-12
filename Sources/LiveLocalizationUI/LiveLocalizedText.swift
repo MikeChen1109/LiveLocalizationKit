@@ -4,6 +4,14 @@ import LiveLocalizationCore
 
 /// A SwiftUI text view that resolves localized content through ``LiveLocalizer``.
 public struct LiveLocalizedText: View {
+    private enum AnimationConstants {
+        static let fadeDuration = 0.2
+        static let softFadeDuration = 0.28
+        static let softFadeBlurRadius = 6.0
+        static let softFadeOutgoingScale = 0.985
+        static let softFadeIncomingScale = 1.015
+    }
+
     private struct TaskKey: Equatable {
         let source: String
         let localizerIdentifier: ObjectIdentifier?
@@ -14,6 +22,8 @@ public struct LiveLocalizedText: View {
     private let animationStyle: LiveLocalizationTextAnimation
 
     @State private var displayedText: String
+    @State private var outgoingText: String?
+    @State private var isSoftFadeAnimating = false
     @State private var requestCoordinator = LiveLocalizationTextRequestCoordinator()
 
     /// Creates a text view that localizes the provided source string.
@@ -63,14 +73,7 @@ public struct LiveLocalizedText: View {
                 }
 
                 await MainActor.run {
-                    switch animationStyle {
-                    case .none:
-                        displayedText = localizedText
-                    case .fade:
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            displayedText = localizedText
-                        }
-                    }
+                    commitLocalizedText(localizedText)
                 }
             }
     }
@@ -83,6 +86,66 @@ public struct LiveLocalizedText: View {
         case .fade:
             Text(displayedText)
                 .contentTransition(.opacity)
+        case .softFade:
+            ZStack {
+                if let outgoingText {
+                    Text(outgoingText)
+                        .opacity(isSoftFadeAnimating ? 0 : 1)
+                        .scaleEffect(isSoftFadeAnimating ? AnimationConstants.softFadeOutgoingScale : 1)
+                        .blur(radius: isSoftFadeAnimating ? AnimationConstants.softFadeBlurRadius : 0)
+                }
+
+                Text(displayedText)
+                    .opacity(outgoingText == nil ? 1 : (isSoftFadeAnimating ? 1 : 0))
+                    .scaleEffect(
+                        outgoingText == nil
+                            ? 1
+                            : (isSoftFadeAnimating ? 1 : AnimationConstants.softFadeIncomingScale)
+                    )
+                    .blur(
+                        radius: outgoingText == nil
+                            ? 0
+                            : (isSoftFadeAnimating ? 0 : AnimationConstants.softFadeBlurRadius)
+                    )
+            }
+            .animation(.easeInOut(duration: AnimationConstants.softFadeDuration), value: isSoftFadeAnimating)
+        }
+    }
+
+    private func commitLocalizedText(_ localizedText: String) {
+        guard displayedText != localizedText else {
+            outgoingText = nil
+            isSoftFadeAnimating = false
+            displayedText = localizedText
+            return
+        }
+
+        switch animationStyle {
+        case .none:
+            displayedText = localizedText
+        case .fade:
+            withAnimation(.easeInOut(duration: AnimationConstants.fadeDuration)) {
+                displayedText = localizedText
+            }
+        case .softFade:
+            let previousText = displayedText
+            outgoingText = previousText
+            isSoftFadeAnimating = false
+            displayedText = localizedText
+
+            withAnimation(.easeInOut(duration: AnimationConstants.softFadeDuration)) {
+                isSoftFadeAnimating = true
+            }
+
+            Task {
+                try? await Task.sleep(for: .seconds(AnimationConstants.softFadeDuration))
+                await MainActor.run {
+                    if displayedText == localizedText {
+                        outgoingText = nil
+                        isSoftFadeAnimating = false
+                    }
+                }
+            }
         }
     }
 
