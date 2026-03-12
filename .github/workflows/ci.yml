@@ -39,7 +39,7 @@ jobs:
       - name: Build demo app
         run: |
           xcodebuild \
-            -project DebugLocalizationDemo.xcodeproj \
-            -scheme DebugLocalizationDemo \
+            -project LiveLocalizationDemo.xcodeproj \
+            -scheme LiveLocalizationKit \
             -destination 'generic/platform=iOS Simulator' \
             build
