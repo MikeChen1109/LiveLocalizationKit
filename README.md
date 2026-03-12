@@ -62,6 +62,16 @@ await LiveLocalization.configure(provider: MyTranslationProvider())
 let text = await "Settings".localize()
 ```
 
+Or create an explicit localizer with a custom cache store:
+
+```swift
+let localizer = LiveLocalizer(
+    provider: MyTranslationProvider(),
+    cacheStore: DiskLocalizationCacheStore()
+)
+let text = await "Checkout".localize(using: localizer)
+```
+
 Or pass more request context when you need it:
 
 ```swift
@@ -79,6 +89,13 @@ Provider guidance:
 - If your provider can answer immediately, prefer `SyncLocalizationProvider`.
 
 See [`docs/ProviderGuide.md`](docs/ProviderGuide.md) for a fuller guide to custom provider design.
+
+## Cache Stores
+
+`LiveLocalizationCore` supports pluggable cache stores.
+
+- `MemoryLocalizationCacheStore` keeps results in memory for the current process.
+- `DiskLocalizationCacheStore` persists localized text to disk across launches.
 
 ## UI Layer
 

@@ -2,10 +2,14 @@ import Foundation
 
 public actor LiveLocalizer {
     private let provider: any LocalizationProvider
-    private var cache: [String: String] = [:]
+    private let cacheStore: any LocalizationCacheStore
 
-    public init(provider: any LocalizationProvider) {
+    public init(
+        provider: any LocalizationProvider,
+        cacheStore: any LocalizationCacheStore = MemoryLocalizationCacheStore()
+    ) {
         self.provider = provider
+        self.cacheStore = cacheStore
     }
 
     public var canLocalizeSynchronously: Bool {
@@ -13,13 +17,13 @@ public actor LiveLocalizer {
     }
 
     /// Returns a cached localized value for the given text if one is already available.
-    public func cachedLocalization(for text: String) -> String? {
-        cache[cacheKey(for: LocalizationRequest(sourceText: text))]
+    public func cachedLocalization(for text: String) async -> String? {
+        await cacheStore.localizedText(forKey: cacheKey(for: LocalizationRequest(sourceText: text)))
     }
 
     /// Returns a cached localized value for the given request if one is already available.
-    public func cachedLocalization(for request: LocalizationRequest) -> String? {
-        cache[cacheKey(for: request)]
+    public func cachedLocalization(for request: LocalizationRequest) async -> String? {
+        await cacheStore.localizedText(forKey: cacheKey(for: request))
     }
 
     public func localize(_ text: String) async -> String {
@@ -28,14 +32,14 @@ public actor LiveLocalizer {
 
     public func localize(_ request: LocalizationRequest) async -> String {
         let cacheKey = cacheKey(for: request)
-        if let cached = cache[cacheKey] {
+        if let cached = await cacheStore.localizedText(forKey: cacheKey) {
             return cached
         }
 
         if let syncProvider = provider as? any SyncLocalizationProvider {
             do {
                 let response = try syncProvider.translateSynchronously(request)
-                cache[cacheKey] = response.localizedText
+                await cacheStore.setLocalizedText(response.localizedText, forKey: cacheKey)
                 return response.localizedText
             } catch {
                 return request.sourceText
@@ -44,15 +48,15 @@ public actor LiveLocalizer {
 
         do {
             let response = try await provider.translate(request)
-            cache[cacheKey] = response.localizedText
+            await cacheStore.setLocalizedText(response.localizedText, forKey: cacheKey)
             return response.localizedText
         } catch {
             return request.sourceText
         }
     }
 
-    public func clearCache() {
-        cache.removeAll()
+    public func clearCache() async {
+        await cacheStore.removeAllLocalizedText()
     }
 
     private func cacheKey(for request: LocalizationRequest) -> String {

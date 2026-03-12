@@ -14,12 +14,14 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 - Added `LiveLocalizedLabel` for UIKit.
 - Added `LiveLocalizationTextAnimation` with `.none` and `.fade` styles.
 - Added `LocalizationRequest` and `LocalizationResponse` to support richer custom provider implementations.
+- Added `LocalizationCacheStore`, `MemoryLocalizationCacheStore`, and `DiskLocalizationCacheStore`.
 - Added UI-layer request coordination tests and demo coverage for the new wrappers.
 
 ### Changed
 - Moved shared localization state to actor-based concurrency instead of relying on `@unchecked Sendable`.
 - Updated `LiveLocalization` shared configuration flow to async usage.
 - Updated the provider contract so custom backends can receive source language, target language, and context data.
+- Updated `LiveLocalizer` to support injected cache stores and disk-backed persistence.
 - Updated the demo app to show both direct core API usage and the new UI wrapper usage in SwiftUI and UIKit.
 - Updated README examples to reflect the current package naming, install path, and UI-layer APIs.
 - Continued the package rename from the previous `DebugLocalization*` surface to the `LiveLocalization*` naming now used across the repository.

@@ -56,6 +56,19 @@ struct LiveLocalizationCoreTests {
     }
 
     @Test
+    func memoryCacheStoreCanBeInjected() async {
+        let localizer = LiveLocalizer(
+            provider: MockLocalizationProvider(),
+            cacheStore: MemoryLocalizationCacheStore()
+        )
+
+        let localized = await localizer.localize("Settings")
+        let cached = await localizer.cachedLocalization(for: "Settings")
+
+        #expect(localized == cached)
+    }
+
+    @Test
     func asyncLocalizationUsesAsyncOnlyProvider() async {
         let localizer = LiveLocalizer(provider: AsyncOnlyProvider())
 
@@ -122,6 +135,41 @@ struct LiveLocalizationCoreTests {
         let localized = await localizer.localize(request)
 
         #expect(localized == "[ja|paywall.primary_cta] Checkout")
+    }
+
+    @Test
+    func diskCacheStorePersistsAcrossLocalizerInstances() async {
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathComponent("LiveLocalizationCache.json")
+        let counter = LockedCounter()
+
+        let firstLocalizer = LiveLocalizer(
+            provider: CountingAsyncProvider(counter: counter),
+            cacheStore: DiskLocalizationCacheStore(fileURL: fileURL)
+        )
+        let secondLocalizer = LiveLocalizer(
+            provider: CountingAsyncProvider(counter: counter),
+            cacheStore: DiskLocalizationCacheStore(fileURL: fileURL)
+        )
+
+        let first = await firstLocalizer.localize(
+            LocalizationRequest(
+                sourceText: "Settings",
+                targetLanguageIdentifier: "ja",
+                context: "settings.title"
+            )
+        )
+        let second = await secondLocalizer.localize(
+            LocalizationRequest(
+                sourceText: "Settings",
+                targetLanguageIdentifier: "ja",
+                context: "settings.title"
+            )
+        )
+
+        #expect(first == second)
+        #expect(await counter.value == 1)
     }
 
     @Test
