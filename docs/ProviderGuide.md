@@ -123,6 +123,30 @@ If your backend supports prompts, domains, or route selection, `context` is the 
 
 This means the same source string can safely produce different cached values when the language or UI context changes.
 
+## Observability
+
+You can attach a `LocalizationLogger` to observe cache and provider behavior at runtime.
+
+```swift
+let logger = ClosureLocalizationLogger { event in
+    print("Localization event:", event)
+}
+
+let localizer = LiveLocalizer(
+    provider: MyTranslationProvider(),
+    cacheStore: DiskLocalizationCacheStore(),
+    cachePolicy: LocalizationCachePolicy(providerIdentifier: "my-provider"),
+    logger: logger
+)
+```
+
+The runtime can emit events for:
+
+- shared configuration
+- cache warmup
+- cache hit / miss / write / invalidation
+- provider translation start / success / failure fallback
+
 ## Design Recommendations
 
 - Keep providers stateless when possible.

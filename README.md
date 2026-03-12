@@ -133,6 +133,30 @@ let localizer = LiveLocalizer(
 )
 ```
 
+## Observability
+
+`LiveLocalizationCore` includes lightweight runtime event hooks for debugging and instrumentation.
+
+You can observe:
+
+- shared configuration start / finish
+- cache warmup start / finish
+- cache hit / miss / write / invalidation / clear
+- provider translation start / success / failure fallback
+
+```swift
+let logger = ClosureLocalizationLogger { event in
+    print("Localization event:", event)
+}
+
+await LiveLocalization.configure(
+    provider: MyTranslationProvider(),
+    cacheStore: DiskLocalizationCacheStore(),
+    cachePolicy: LocalizationCachePolicy(providerIdentifier: "my-provider"),
+    logger: logger
+)
+```
+
 ## UI Layer
 
 `LiveLocalizationUI` adds simple view wrappers on top of the core localizer layer.

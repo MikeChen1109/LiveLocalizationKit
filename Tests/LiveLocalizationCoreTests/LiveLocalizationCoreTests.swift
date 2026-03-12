@@ -136,6 +136,33 @@ struct LiveLocalizationCoreTests {
     }
 
     @Test
+    func loggerCapturesSharedConfigurationAndCacheWarmup() async {
+        defer {
+            Task {
+                await LiveLocalization.reset()
+            }
+        }
+
+        let logger = EventRecorder()
+
+        await LiveLocalization.configure(
+            provider: MockLocalizationProvider(),
+            cacheStore: MemoryLocalizationCacheStore(),
+            cachePolicy: LocalizationCachePolicy(providerIdentifier: "mock"),
+            logger: logger
+        )
+
+        let events = await logger.events
+
+        #expect(events == [
+            .sharedConfigurationStarted,
+            .cacheWarmupStarted,
+            .cacheWarmupFinished,
+            .sharedConfigurationFinished
+        ])
+    }
+
+    @Test
     func cachedLocalizationReturnsNilForUnknownValue() async {
         let localizer = LiveLocalizer(provider: AsyncOnlyProvider())
 
@@ -224,6 +251,39 @@ struct LiveLocalizationCoreTests {
     }
 
     @Test
+    func loggerCapturesCacheMissSuccessWriteAndCacheHit() async {
+        let counter = LockedCounter()
+        let logger = EventRecorder()
+        let localizer = LiveLocalizer(
+            provider: CountingAsyncProvider(counter: counter),
+            logger: logger
+        )
+
+        let request = LocalizationRequest(sourceText: "Settings")
+        _ = await localizer.localize(request)
+        _ = await localizer.localize(request)
+
+        let events = await logger.events
+
+        #expect(events.contains(where: {
+            if case .cacheMiss = $0 { return true }
+            return false
+        }))
+        #expect(events.contains(where: {
+            if case .providerTranslationSucceeded = $0 { return true }
+            return false
+        }))
+        #expect(events.contains(where: {
+            if case .cacheStoreWrite = $0 { return true }
+            return false
+        }))
+        #expect(events.contains(where: {
+            if case .cacheHit = $0 { return true }
+            return false
+        }))
+    }
+
+    @Test
     func localizationRequestAffectsCacheKey() async {
         let counter = LockedCounter()
         let localizer = LiveLocalizer(provider: CountingAsyncProvider(counter: counter))
@@ -273,7 +333,11 @@ struct LiveLocalizationCoreTests {
     @Test
     func invalidateCachedLocalizationRemovesSingleRequest() async {
         let counter = LockedCounter()
-        let localizer = LiveLocalizer(provider: CountingAsyncProvider(counter: counter))
+        let logger = EventRecorder()
+        let localizer = LiveLocalizer(
+            provider: CountingAsyncProvider(counter: counter),
+            logger: logger
+        )
         let request = LocalizationRequest(
             sourceText: "Settings",
             targetLanguageIdentifier: "ja",
@@ -286,6 +350,11 @@ struct LiveLocalizationCoreTests {
 
         #expect(first != second)
         #expect(await counter.value == 2)
+        let events = await logger.events
+        #expect(events.contains(where: {
+            if case .cacheInvalidated = $0 { return true }
+            return false
+        }))
     }
 
     @Test
@@ -331,6 +400,26 @@ struct LiveLocalizationCoreTests {
         #expect(await syncLocalizer.canLocalizeSynchronously)
         #expect(await !asyncLocalizer.canLocalizeSynchronously)
     }
+
+    @Test
+    func loggerCapturesProviderFailureFallback() async {
+        let logger = EventRecorder()
+        let localizer = LiveLocalizer(
+            provider: FailingProvider(),
+            logger: logger
+        )
+
+        let localized = await localizer.localize("Settings")
+
+        #expect(localized == "Settings")
+        let events = await logger.events
+        #expect(events.contains(where: {
+            if case .providerTranslationFailed(_, let fallbackText) = $0 {
+                return fallbackText == "Settings"
+            }
+            return false
+        }))
+    }
 }
 
 private struct AsyncOnlyProvider: LocalizationProvider {
@@ -366,5 +455,23 @@ private struct RequestEchoProvider: LocalizationProvider {
         let target = request.targetLanguageIdentifier ?? "nil"
         let context = request.context ?? "nil"
         return LocalizationResponse(localizedText: "[\(target)|\(context)] \(request.sourceText)")
+    }
+}
+
+private struct FailingProvider: LocalizationProvider {
+    func translate(_ request: LocalizationRequest) async throws -> LocalizationResponse {
+        throw LocalizationTestError.expectedFailure
+    }
+}
+
+private enum LocalizationTestError: Error {
+    case expectedFailure
+}
+
+private actor EventRecorder: LocalizationLogger {
+    private(set) var events: [LocalizationEvent] = []
+
+    func log(_ event: LocalizationEvent) async {
+        events.append(event)
     }
 }

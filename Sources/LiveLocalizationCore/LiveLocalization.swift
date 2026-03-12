@@ -6,15 +6,19 @@ public enum LiveLocalization {
     public static func configure(
         provider: any LocalizationProvider,
         cacheStore: any LocalizationCacheStore = MemoryLocalizationCacheStore(),
-        cachePolicy: LocalizationCachePolicy = LocalizationCachePolicy()
+        cachePolicy: LocalizationCachePolicy = LocalizationCachePolicy(),
+        logger: (any LocalizationLogger)? = nil
     ) async {
         let localizer = LiveLocalizer(
             provider: provider,
             cacheStore: cacheStore,
-            cachePolicy: cachePolicy
+            cachePolicy: cachePolicy,
+            logger: logger
         )
+        await logger?.log(.sharedConfigurationStarted)
         await localizer.prepareForUse()
         await sharedStore.setLocalizer(localizer)
+        await logger?.log(.sharedConfigurationFinished)
     }
 
     public static func configure(localizer: LiveLocalizer) async {

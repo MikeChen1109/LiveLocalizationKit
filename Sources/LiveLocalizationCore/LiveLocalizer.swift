@@ -4,15 +4,18 @@ public actor LiveLocalizer {
     private let provider: any LocalizationProvider
     private let cacheStore: any LocalizationCacheStore
     private let cachePolicy: LocalizationCachePolicy
+    private let logger: (any LocalizationLogger)?
 
     public init(
         provider: any LocalizationProvider,
         cacheStore: any LocalizationCacheStore = MemoryLocalizationCacheStore(),
-        cachePolicy: LocalizationCachePolicy = LocalizationCachePolicy()
+        cachePolicy: LocalizationCachePolicy = LocalizationCachePolicy(),
+        logger: (any LocalizationLogger)? = nil
     ) {
         self.provider = provider
         self.cacheStore = cacheStore
         self.cachePolicy = cachePolicy
+        self.logger = logger
     }
 
     public var canLocalizeSynchronously: Bool {
@@ -20,7 +23,9 @@ public actor LiveLocalizer {
     }
 
     public func prepareForUse() async {
+        await logger?.log(.cacheWarmupStarted)
         await cacheStore.prepareForUse()
+        await logger?.log(.cacheWarmupFinished)
     }
 
     /// Returns a cached localized value for the given text if one is already available.
@@ -40,15 +45,22 @@ public actor LiveLocalizer {
     public func localize(_ request: LocalizationRequest) async -> String {
         let cacheKey = cacheKey(for: request)
         if let cached = await cacheStore.cacheEntry(forKey: cacheKey)?.localizedText {
+            await logger?.log(.cacheHit(key: cacheKey))
             return cached
         }
+
+        await logger?.log(.cacheMiss(key: cacheKey))
+        await logger?.log(.providerTranslationStarted(request: request))
 
         if let syncProvider = provider as? any SyncLocalizationProvider {
             do {
                 let response = try syncProvider.translateSynchronously(request)
                 await cacheStore.setCacheEntry(cacheEntry(for: response.localizedText), forKey: cacheKey)
+                await logger?.log(.cacheStoreWrite(key: cacheKey))
+                await logger?.log(.providerTranslationSucceeded(request: request, localizedText: response.localizedText))
                 return response.localizedText
             } catch {
+                await logger?.log(.providerTranslationFailed(request: request, fallbackText: request.sourceText))
                 return request.sourceText
             }
         }
@@ -56,8 +68,11 @@ public actor LiveLocalizer {
         do {
             let response = try await provider.translate(request)
             await cacheStore.setCacheEntry(cacheEntry(for: response.localizedText), forKey: cacheKey)
+            await logger?.log(.cacheStoreWrite(key: cacheKey))
+            await logger?.log(.providerTranslationSucceeded(request: request, localizedText: response.localizedText))
             return response.localizedText
         } catch {
+            await logger?.log(.providerTranslationFailed(request: request, fallbackText: request.sourceText))
             return request.sourceText
         }
     }
@@ -67,11 +82,14 @@ public actor LiveLocalizer {
     }
 
     public func invalidateCachedLocalization(for request: LocalizationRequest) async {
-        await cacheStore.removeLocalizedText(forKey: cacheKey(for: request))
+        let key = cacheKey(for: request)
+        await cacheStore.removeLocalizedText(forKey: key)
+        await logger?.log(.cacheInvalidated(key: key))
     }
 
     public func clearCache() async {
         await cacheStore.removeAllLocalizedText()
+        await logger?.log(.cacheCleared)
     }
 
     private func cacheKey(for request: LocalizationRequest) -> String {
