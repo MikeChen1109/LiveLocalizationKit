@@ -69,6 +69,52 @@ struct LiveLocalizationCoreTests {
     }
 
     @Test
+    func cachePolicySegmentsByNamespaceAndProviderIdentifier() async {
+        let sharedCacheStore = MemoryLocalizationCacheStore()
+        let counter = LockedCounter()
+
+        let firstLocalizer = LiveLocalizer(
+            provider: CountingAsyncProvider(counter: counter),
+            cacheStore: sharedCacheStore,
+            cachePolicy: LocalizationCachePolicy(
+                namespace: "preview",
+                providerIdentifier: "provider-a"
+            )
+        )
+        let secondLocalizer = LiveLocalizer(
+            provider: CountingAsyncProvider(counter: counter),
+            cacheStore: sharedCacheStore,
+            cachePolicy: LocalizationCachePolicy(
+                namespace: "preview",
+                providerIdentifier: "provider-b"
+            )
+        )
+
+        let first = await firstLocalizer.localize("Settings")
+        let second = await secondLocalizer.localize("Settings")
+
+        #expect(first != second)
+        #expect(await counter.value == 2)
+    }
+
+    @Test
+    func cachePolicyEntryLifetimeExpiresEntries() async throws {
+        let counter = LockedCounter()
+        let localizer = LiveLocalizer(
+            provider: CountingAsyncProvider(counter: counter),
+            cacheStore: MemoryLocalizationCacheStore(),
+            cachePolicy: LocalizationCachePolicy(entryLifetime: 0.05)
+        )
+
+        let first = await localizer.localize("Settings")
+        try await Task.sleep(nanoseconds: 120_000_000)
+        let second = await localizer.localize("Settings")
+
+        #expect(first != second)
+        #expect(await counter.value == 2)
+    }
+
+    @Test
     func asyncLocalizationUsesAsyncOnlyProvider() async {
         let localizer = LiveLocalizer(provider: AsyncOnlyProvider())
 
@@ -135,6 +181,24 @@ struct LiveLocalizationCoreTests {
         let localized = await localizer.localize(request)
 
         #expect(localized == "[ja|paywall.primary_cta] Checkout")
+    }
+
+    @Test
+    func invalidateCachedLocalizationRemovesSingleRequest() async {
+        let counter = LockedCounter()
+        let localizer = LiveLocalizer(provider: CountingAsyncProvider(counter: counter))
+        let request = LocalizationRequest(
+            sourceText: "Settings",
+            targetLanguageIdentifier: "ja",
+            context: "settings.title"
+        )
+
+        let first = await localizer.localize(request)
+        await localizer.invalidateCachedLocalization(for: request)
+        let second = await localizer.localize(request)
+
+        #expect(first != second)
+        #expect(await counter.value == 2)
     }
 
     @Test

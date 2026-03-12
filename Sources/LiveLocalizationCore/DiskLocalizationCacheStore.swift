@@ -4,7 +4,7 @@ import Foundation
 public actor DiskLocalizationCacheStore: LocalizationCacheStore {
     private let fileURL: URL
     private let fileManager: FileManager
-    private var storage: [String: String] = [:]
+    private var storage: [String: LocalizationCacheEntry] = [:]
     private var hasLoaded = false
 
     public init(
@@ -26,14 +26,30 @@ public actor DiskLocalizationCacheStore: LocalizationCacheStore {
         self.fileManager = fileManager
     }
 
-    public func localizedText(forKey key: String) async -> String? {
+    public func cacheEntry(forKey key: String) async -> LocalizationCacheEntry? {
         await loadIfNeeded()
-        return storage[key]
+        guard let entry = storage[key] else {
+            return nil
+        }
+
+        guard !entry.isExpired() else {
+            storage.removeValue(forKey: key)
+            await persist()
+            return nil
+        }
+
+        return entry
     }
 
-    public func setLocalizedText(_ value: String, forKey key: String) async {
+    public func setCacheEntry(_ entry: LocalizationCacheEntry, forKey key: String) async {
         await loadIfNeeded()
-        storage[key] = value
+        storage[key] = entry
+        await persist()
+    }
+
+    public func removeLocalizedText(forKey key: String) async {
+        await loadIfNeeded()
+        storage.removeValue(forKey: key)
         await persist()
     }
 
@@ -56,7 +72,7 @@ public actor DiskLocalizationCacheStore: LocalizationCacheStore {
 
         do {
             let data = try Data(contentsOf: fileURL)
-            storage = try JSONDecoder().decode([String: String].self, from: data)
+            storage = try JSONDecoder().decode([String: LocalizationCacheEntry].self, from: data)
         } catch {
             storage = [:]
         }

@@ -96,6 +96,19 @@ See [`docs/ProviderGuide.md`](docs/ProviderGuide.md) for a fuller guide to custo
 
 - `MemoryLocalizationCacheStore` keeps results in memory for the current process.
 - `DiskLocalizationCacheStore` persists localized text to disk across launches.
+- `LocalizationCachePolicy` supports namespacing, provider-aware segmentation, and TTL-based expiration.
+
+```swift
+let localizer = LiveLocalizer(
+    provider: MyTranslationProvider(),
+    cacheStore: DiskLocalizationCacheStore(),
+    cachePolicy: LocalizationCachePolicy(
+        namespace: "preview",
+        providerIdentifier: "my-backend",
+        entryLifetime: 3600
+    )
+)
+```
 
 ## UI Layer
 
