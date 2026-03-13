@@ -9,6 +9,7 @@ It provides a provider-based localization stack with built-in Apple Translation 
 - runtime localization for SwiftUI and UIKit apps
 - provider-based architecture for custom translation backends
 - built-in Apple Translation support
+- batch-capable provider support with async request throttling controls
 - SwiftUI `LiveLocalizedText` and UIKit `LiveLocalizedLabel`
 - loading placeholders, progress callbacks, and completion callbacks for UI wrappers
 - in-memory and disk-backed cache stores
@@ -112,6 +113,44 @@ Provider guidance:
 - If your provider can answer immediately, prefer `SyncLocalizationProvider`.
 
 See [`docs/ProviderGuide.md`](docs/ProviderGuide.md) for a fuller guide to custom provider design.
+
+If your backend accepts multiple compatible strings in one request, adopt `BatchLocalizationProvider` so `LiveLocalizer` can coalesce nearby requests and issue a single batch call:
+
+```swift
+struct MyBatchProvider: BatchLocalizationProvider {
+    func batchGroupIdentifier(for request: LocalizationRequest) -> String {
+        request.targetLanguageIdentifier ?? "default"
+    }
+
+    func translateBatch(_ requests: [LocalizationRequest]) async throws -> [LocalizationResponse] {
+        requests.map { request in
+            LocalizationResponse(localizedText: "[batch] \(request.sourceText)")
+        }
+    }
+
+    func translate(_ request: LocalizationRequest) async throws -> LocalizationResponse {
+        let responses = try await translateBatch([request])
+        return responses[0]
+    }
+}
+```
+
+## Execution Policy
+
+`LocalizationExecutionPolicy` lets you tune async throughput for shared and explicit localizers:
+
+```swift
+let localizer = LiveLocalizer(
+    provider: MyBatchProvider(),
+    executionPolicy: LocalizationExecutionPolicy(
+        maxConcurrentAsyncRequests: 4,
+        batchWindow: .milliseconds(30),
+        maxBatchSize: 16
+    )
+)
+```
+
+Use this when you want to protect a remote backend from burst traffic or increase batch efficiency for providers that support grouped translation.
 
 ## Cache Stores
 

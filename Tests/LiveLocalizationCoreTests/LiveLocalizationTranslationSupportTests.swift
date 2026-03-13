@@ -1,4 +1,5 @@
 import Foundation
+import LiveLocalizationCore
 import Testing
 @testable import LiveLocalizationTranslationSupport
 
@@ -55,13 +56,20 @@ struct LiveLocalizationTranslationSupportTests {
                 }
             }
         )
+        let localizer = LiveLocalizer(
+            provider: provider,
+            executionPolicy: LocalizationExecutionPolicy(
+                batchWindow: .milliseconds(30),
+                maxBatchSize: 16
+            )
+        )
 
         let results = await withTaskGroup(of: String.self, returning: [String].self) { group in
             group.addTask {
-                await provider.translate("Settings")
+                await localizer.localize("Settings")
             }
             group.addTask {
-                await provider.translate("Delete")
+                await localizer.localize("Delete")
             }
 
             var values: [String] = []

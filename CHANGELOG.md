@@ -6,6 +6,19 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-03-13
+
+### Added
+- Added `BatchLocalizationProvider` so compatible requests can be translated through a single backend batch call.
+- Added `LocalizationExecutionPolicy` to control async request throttling, batch collection window, and batch size limits.
+- Added batching and concurrency coverage in core tests, including grouped request validation for batch-capable providers.
+
+### Changed
+- Updated `LiveLocalizer` to throttle async provider work through a shared execution limiter.
+- Updated `LiveLocalizer` to collect compatible requests into short-lived batches before calling batch-capable providers.
+- Updated `AppleTranslationProvider` to participate in the new batch translation flow.
+- Updated README guidance to document batch providers and execution policy tuning.
+
 ## [0.6.0] - 2026-03-13
 
 ### Added
