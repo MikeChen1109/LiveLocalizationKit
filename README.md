@@ -10,6 +10,12 @@ It provides a provider-based localization stack with built-in Apple Translation 
   <img src="docs/images/demo-ko.png" width="30%" alt="Korean marketing demo screenshot" />
 </p>
 
+## Demo
+
+<p align="center">
+  <img src="docs/images/livelocalizationdemo.gif" width="36%" alt="LiveLocalizationKit runtime localization demo" />
+</p>
+
 ## Features
 
 - runtime localization for SwiftUI and UIKit apps
