@@ -16,10 +16,9 @@ struct LiveLocalizationKitApp: App {
         WindowGroup {
             Group {
                 if isConfigured {
-                    RootDemoView(
-                        shouldPresentPreparationGate: shouldPresentPreparationGate,
-                        eventStore: eventStore
-                    )
+                    TranslationPreparationGate(isEnabled: shouldPresentPreparationGate) {
+                        MarketingLocalizationDemoView()
+                    }
                 } else {
                     ProgressView()
                 }
@@ -28,7 +27,7 @@ struct LiveLocalizationKitApp: App {
                 guard !isConfigured else { return }
                 await LiveLocalization.configure(
                     provider: AppleTranslationProvider(),
-                    cacheStore: DiskLocalizationCacheStore(),
+//                    cacheStore: DiskLocalizationCacheStore(),
                     cachePolicy: LocalizationCachePolicy(
                         namespace: "demo",
                         providerIdentifier: "apple-translation"

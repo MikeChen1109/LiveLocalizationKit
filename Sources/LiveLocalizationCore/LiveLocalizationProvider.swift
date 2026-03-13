@@ -39,6 +39,15 @@ public protocol SyncLocalizationProvider: LocalizationProvider {
     func translateSynchronously(_ request: LocalizationRequest) throws -> LocalizationResponse
 }
 
+/// A translation provider that can batch compatible requests into a single backend call.
+public protocol BatchLocalizationProvider: LocalizationProvider {
+    /// Returns a stable key describing which requests can share the same batch.
+    func batchGroupIdentifier(for request: LocalizationRequest) -> String
+
+    /// Translates a batch of requests and returns responses in the same order as the input array.
+    func translateBatch(_ requests: [LocalizationRequest]) async throws -> [LocalizationResponse]
+}
+
 public extension SyncLocalizationProvider {
     func translate(_ request: LocalizationRequest) async throws -> LocalizationResponse {
         try translateSynchronously(request)

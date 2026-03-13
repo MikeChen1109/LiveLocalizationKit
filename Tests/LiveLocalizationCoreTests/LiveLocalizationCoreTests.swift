@@ -251,6 +251,34 @@ struct LiveLocalizationCoreTests {
     }
 
     @Test
+    func concurrentLocalizationSharesInFlightWorkForIdenticalRequests() async {
+        let counter = LockedCounter()
+        let localizer = LiveLocalizer(provider: SlowCountingAsyncProvider(counter: counter))
+        let request = LocalizationRequest(
+            sourceText: "Settings",
+            targetLanguageIdentifier: "ja",
+            context: "settings.title"
+        )
+
+        await withTaskGroup(of: String.self) { group in
+            for _ in 0..<8 {
+                group.addTask {
+                    await localizer.localize(request)
+                }
+            }
+
+            var results: [String] = []
+            for await result in group {
+                results.append(result)
+            }
+
+            #expect(Set(results).count == 1)
+        }
+
+        #expect(await counter.value == 1)
+    }
+
+    @Test
     func loggerCapturesCacheMissSuccessWriteAndCacheHit() async {
         let counter = LockedCounter()
         let logger = EventRecorder()
@@ -420,6 +448,62 @@ struct LiveLocalizationCoreTests {
             return false
         }))
     }
+
+    @Test
+    func executionPolicyLimitsConcurrentAsyncRequestsAcrossDifferentRequests() async {
+        let tracker = ConcurrencyTracker()
+        let localizer = LiveLocalizer(
+            provider: TrackingAsyncProvider(tracker: tracker),
+            executionPolicy: LocalizationExecutionPolicy(maxConcurrentAsyncRequests: 2)
+        )
+
+        await withTaskGroup(of: String.self) { group in
+            for index in 0..<6 {
+                group.addTask {
+                    await localizer.localize("Item \(index)")
+                }
+            }
+
+            for await _ in group {}
+        }
+
+        #expect(await tracker.maxConcurrentOperations == 2)
+    }
+
+    @Test
+    func batchCapableCustomProviderCoalescesSiblingRequests() async {
+        let recorder = BatchProviderRecorder()
+        let localizer = LiveLocalizer(
+            provider: RecordingBatchProvider(recorder: recorder),
+            executionPolicy: LocalizationExecutionPolicy(
+                maxConcurrentAsyncRequests: 4,
+                batchWindow: .milliseconds(30),
+                maxBatchSize: 16
+            )
+        )
+
+        let results = await withTaskGroup(of: String.self, returning: [String].self) { group in
+            group.addTask {
+                await localizer.localize(
+                    LocalizationRequest(sourceText: "Settings", targetLanguageIdentifier: "ja")
+                )
+            }
+            group.addTask {
+                await localizer.localize(
+                    LocalizationRequest(sourceText: "Delete", targetLanguageIdentifier: "ja")
+                )
+            }
+
+            var values: [String] = []
+            for await value in group {
+                values.append(value)
+            }
+            return values
+        }
+
+        #expect(Set(results) == ["[batch] Settings", "[batch] Delete"])
+        #expect(await recorder.recordedBatches == [["Settings", "Delete"]])
+    }
 }
 
 private struct AsyncOnlyProvider: LocalizationProvider {
@@ -447,6 +531,69 @@ private struct CountingAsyncProvider: LocalizationProvider {
     func translate(_ request: LocalizationRequest) async throws -> LocalizationResponse {
         let callCount = await counter.increment()
         return LocalizationResponse(localizedText: "[async-\(callCount)] \(request.sourceText)")
+    }
+}
+
+private struct SlowCountingAsyncProvider: LocalizationProvider {
+    let counter: LockedCounter
+
+    func translate(_ request: LocalizationRequest) async throws -> LocalizationResponse {
+        let callCount = await counter.increment()
+        try? await Task.sleep(for: .milliseconds(50))
+        return LocalizationResponse(localizedText: "[async-\(callCount)] \(request.sourceText)")
+    }
+}
+
+private actor ConcurrencyTracker {
+    private var currentOperations = 0
+    private(set) var maxConcurrentOperations = 0
+
+    func begin() {
+        currentOperations += 1
+        maxConcurrentOperations = max(maxConcurrentOperations, currentOperations)
+    }
+
+    func end() {
+        currentOperations -= 1
+    }
+}
+
+private actor BatchProviderRecorder {
+    private(set) var recordedBatches: [[String]] = []
+
+    func record(_ batch: [String]) {
+        recordedBatches.append(batch)
+    }
+}
+
+private struct TrackingAsyncProvider: LocalizationProvider {
+    let tracker: ConcurrencyTracker
+
+    func translate(_ request: LocalizationRequest) async throws -> LocalizationResponse {
+        await tracker.begin()
+        try? await Task.sleep(for: .milliseconds(50))
+        await tracker.end()
+        return LocalizationResponse(localizedText: "[tracked] \(request.sourceText)")
+    }
+}
+
+private struct RecordingBatchProvider: BatchLocalizationProvider {
+    let recorder: BatchProviderRecorder
+
+    func batchGroupIdentifier(for request: LocalizationRequest) -> String {
+        request.targetLanguageIdentifier ?? "default"
+    }
+
+    func translateBatch(_ requests: [LocalizationRequest]) async throws -> [LocalizationResponse] {
+        await recorder.record(requests.map(\.sourceText))
+        try? await Task.sleep(for: .milliseconds(50))
+        return requests.map { request in
+            LocalizationResponse(localizedText: "[batch] \(request.sourceText)")
+        }
+    }
+
+    func translate(_ request: LocalizationRequest) async throws -> LocalizationResponse {
+        LocalizationResponse(localizedText: "[single] \(request.sourceText)")
     }
 }
 

@@ -9,7 +9,7 @@ struct LiveLocalizationTranslationSupportTests {
             appLanguageIdentifier: { "zh-Hant" },
             englishLanguageIdentifierChecker: { _ in false },
             preparationResolver: { _ in testPreparation },
-            translationExecutor: { _, _ in throw LiveLocalizationTestError.expectedFailure }
+            batchTranslationExecutor: { _, _ in throw LiveLocalizationTestError.expectedFailure }
         )
 
         let localized = await provider.translate("Settings")
@@ -26,15 +26,53 @@ struct LiveLocalizationTranslationSupportTests {
                 Issue.record("Preparation should not be requested for English.")
                 return nil
             },
-            translationExecutor: { _, _ in
+            batchTranslationExecutor: { _, _ in
                 Issue.record("Translation should not run for English.")
-                return ""
+                return []
             }
         )
 
         let localized = await provider.translate("Settings")
 
         #expect(localized == "Settings")
+    }
+
+    @Test
+    func appleTranslationProviderBatchesConcurrentRequests() async {
+        let recorder = BatchRecorder()
+        let provider = AppleTranslationProvider(
+            appLanguageIdentifier: { "zh-Hant" },
+            englishLanguageIdentifierChecker: { _ in false },
+            preparationResolver: { _ in testPreparation },
+            batchTranslationExecutor: { requests, _ in
+                await recorder.record(requests.map(\.text))
+                try? await Task.sleep(for: .milliseconds(50))
+                return requests.map { request in
+                    AppleTranslationProvider.BatchTranslationResult(
+                        id: request.id,
+                        text: "[translated] \(request.text)"
+                    )
+                }
+            }
+        )
+
+        let results = await withTaskGroup(of: String.self, returning: [String].self) { group in
+            group.addTask {
+                await provider.translate("Settings")
+            }
+            group.addTask {
+                await provider.translate("Delete")
+            }
+
+            var values: [String] = []
+            for await value in group {
+                values.append(value)
+            }
+            return values
+        }
+
+        #expect(Set(results) == ["[translated] Settings", "[translated] Delete"])
+        #expect(await recorder.recordedBatches == [["Settings", "Delete"]])
     }
 
     @Test
@@ -91,6 +129,14 @@ struct LiveLocalizationTranslationSupportTests {
 
 private enum LiveLocalizationTestError: Error {
     case expectedFailure
+}
+
+private actor BatchRecorder {
+    private(set) var recordedBatches: [[String]] = []
+
+    func record(_ batch: [String]) {
+        recordedBatches.append(batch)
+    }
 }
 
 @available(iOS 18.0, *)

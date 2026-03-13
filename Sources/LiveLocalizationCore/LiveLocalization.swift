@@ -7,12 +7,14 @@ public enum LiveLocalization {
         provider: any LocalizationProvider,
         cacheStore: any LocalizationCacheStore = MemoryLocalizationCacheStore(),
         cachePolicy: LocalizationCachePolicy = LocalizationCachePolicy(),
+        executionPolicy: LocalizationExecutionPolicy = LocalizationExecutionPolicy(),
         logger: (any LocalizationLogger)? = nil
     ) async {
         let localizer = LiveLocalizer(
             provider: provider,
             cacheStore: cacheStore,
             cachePolicy: cachePolicy,
+            executionPolicy: executionPolicy,
             logger: logger
         )
         await logger?.log(.sharedConfigurationStarted)
