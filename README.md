@@ -4,6 +4,12 @@ A Swift Package that helps small teams and indie developers add multilingual sup
 
 It provides a provider-based localization stack with built-in Apple Translation support, UI-ready wrappers, and configurable caching for runtime localization flows and custom translation backends.
 
+<p align="center">
+  <img src="docs/images/demo-ja.png" width="30%" alt="Japanese marketing demo screenshot" />
+  <img src="docs/images/demo-zh-Hant.png" width="30%" alt="Traditional Chinese marketing demo screenshot" />
+  <img src="docs/images/demo-ko.png" width="30%" alt="Korean marketing demo screenshot" />
+</p>
+
 ## Features
 
 - runtime localization for SwiftUI and UIKit apps
